@@ -7,6 +7,7 @@ const hint = document.getElementById("hint");
 
 const btnFullscreen = document.getElementById("btnFullscreen");
 const btnInvert = document.getElementById("btnInvert");
+const btnMirror = document.getElementById("btnMirror");
 const btnRotate = document.getElementById("btnRotate");
 const zoomSlider = document.getElementById("zoomSlider");
 
@@ -20,10 +21,17 @@ const btnApplyInput = document.getElementById("btnApplyInput");
 
 let currentStream = null;
 let drawEnabled = false;
-let drawing = false;
-let last = null;
 let rotation = 0;     // degrees (0, 90, 180, 270)
 let zoom = 1;         // scale factor (0.25 - 3)
+let mirrored = false; // horizontal flip
+let offsetX = 0, offsetY = 0; // pan offsets in px
+
+// track active pointers for pinch/drag gestures
+const activePointers = new Map();
+// track last points for active drawing pointers
+const drawingPointers = new Map();
+let lastPan = null;
+let lastPinchDist = null;
 
 // ---------- Camera handling ----------
 async function listVideoInputs() {
@@ -59,12 +67,11 @@ async function startStream(deviceId = undefined) {
     video.srcObject = stream;
     currentStream = stream;
     hint.style.display = "none";
+    // Ensure overlay matches the actual video size once metadata is ready
+    video.addEventListener("loadedmetadata", resizeCanvasToVideo, { once: true });
 
     // On first permission grant, populate labels for inputs
     await listVideoInputs();
-
-    // Resize canvas to match the rendered video area
-    requestAnimationFrame(resizeCanvasToVideo);
   } catch (err) {
     console.error(err);
     hint.textContent = "Camera access failed. Check permissions or device.";
@@ -73,37 +80,52 @@ async function startStream(deviceId = undefined) {
 }
 
 function resizeCanvasToVideo() {
-  // Match overlay to the visible video box size
+  // Match overlay to the visible video box size while preserving drawings
   const rect = video.getBoundingClientRect();
-  // Set canvas internal size to device pixels for sharp lines
   const dpr = window.devicePixelRatio || 1;
+
+  // Save current drawing
+  const prev = document.createElement("canvas");
+  prev.width = overlay.width;
+  prev.height = overlay.height;
+  prev.getContext("2d").drawImage(overlay, 0, 0);
+
   overlay.width = Math.max(2, Math.floor(rect.width * dpr));
   overlay.height = Math.max(2, Math.floor(rect.height * dpr));
   overlay.style.width = `${rect.width}px`;
   overlay.style.height = `${rect.height}px`;
-  ctx.scale(dpr, dpr);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, overlay.width, overlay.height);
+  // Scale previous drawing to new size
+  ctx.drawImage(prev, 0, 0, prev.width, prev.height, 0, 0, overlay.width, overlay.height);
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
 }
 
-// Keep overlay in sync on resize / zoom / rotate
-const ro = new ResizeObserver(() => resizeCanvasToVideo());
-ro.observe(video);
+// Size the drawing canvas when the stream starts and on explicit resize
+// events so drawings persist through zoom/rotate/mirror transforms.
 
 // ---------- Transform handling (rotate + zoom) ----------
 function applyTransform() {
-  videoWrap.style.transform = `rotate(${rotation}deg) scale(${zoom})`;
+  const scaleX = mirrored ? -1 : 1;
+  const t = `translate(${offsetX}px, ${offsetY}px) scaleX(${scaleX}) rotate(${rotation}deg) scale(${zoom})`;
+  video.style.transform = t;
+  overlay.style.transform = t;
 }
 zoomSlider.addEventListener("input", () => {
   zoom = parseFloat(zoomSlider.value);
   applyTransform();
-  // Defer a canvas resize a bit so layout settles
-  setTimeout(resizeCanvasToVideo, 50);
 });
 btnRotate.addEventListener("click", () => {
   rotation = (rotation + 90) % 360;
   applyTransform();
-  setTimeout(resizeCanvasToVideo, 150);
+});
+
+// ---------- Mirror ----------
+btnMirror.addEventListener("click", () => {
+  mirrored = !mirrored;
+  btnMirror.classList.toggle("active", mirrored);
+  applyTransform();
 });
 
 // ---------- Invert ----------
@@ -128,28 +150,56 @@ btnFullscreen.addEventListener("click", async () => {
 
 // ---------- Draw tool ----------
 function toLocalPoint(evt) {
-  const r = overlay.getBoundingClientRect();
-  const x = evt.clientX - r.left;
-  const y = evt.clientY - r.top;
+  const rect = overlay.getBoundingClientRect();
+  // Coordinates relative to center of the element
+  let x = evt.clientX - (rect.left + rect.width / 2);
+  let y = evt.clientY - (rect.top + rect.height / 2);
+
+  // Undo overall zoom
+  x /= zoom;
+  y /= zoom;
+
+  // Undo rotation
+  switch (rotation) {
+    case 90:
+      [x, y] = [y, -x];
+      break;
+    case 180:
+      x = -x; y = -y;
+      break;
+    case 270:
+      [x, y] = [-y, x];
+      break;
+  }
+
+  // Undo mirroring
+  if (mirrored) x = -x;
+
+  // Convert back to top-left origin and device pixels
+  const dpr = window.devicePixelRatio || 1;
+  x = (x + overlay.clientWidth / 2) * dpr;
+  y = (y + overlay.clientHeight / 2) * dpr;
   return { x, y };
 }
 function beginDraw(evt) {
-  if (!drawEnabled) return;
-  drawing = true;
-  last = toLocalPoint(evt);
+  drawingPointers.set(evt.pointerId, toLocalPoint(evt));
 }
 function moveDraw(evt) {
-  if (!drawing || !drawEnabled) return;
+  const last = drawingPointers.get(evt.pointerId);
+  if (!last) return;
   const p = toLocalPoint(evt);
+  const dpr = window.devicePixelRatio || 1;
   ctx.strokeStyle = penColor.value;
-  ctx.lineWidth = parseInt(penSize.value, 10) || 4;
+  ctx.lineWidth = (parseInt(penSize.value, 10) || 4) * dpr / zoom;
   ctx.beginPath();
   ctx.moveTo(last.x, last.y);
   ctx.lineTo(p.x, p.y);
   ctx.stroke();
-  last = p;
+  drawingPointers.set(evt.pointerId, p);
 }
-function endDraw() { drawing = false; last = null; }
+function endDraw(evt) {
+  drawingPointers.delete(evt.pointerId);
+}
 
 btnDraw.addEventListener("click", () => {
   drawEnabled = !drawEnabled;
@@ -157,15 +207,84 @@ btnDraw.addEventListener("click", () => {
   overlay.style.cursor = drawEnabled ? "crosshair" : "default";
 });
 btnClear.addEventListener("click", () => {
-  const r = overlay.getBoundingClientRect();
-  ctx.clearRect(0, 0, r.width, r.height);
+  ctx.clearRect(0, 0, overlay.width, overlay.height);
 });
 
-overlay.addEventListener("pointerdown", (e) => { overlay.setPointerCapture(e.pointerId); beginDraw(e); });
-overlay.addEventListener("pointermove", moveDraw);
-overlay.addEventListener("pointerup", endDraw);
-overlay.addEventListener("pointercancel", endDraw);
-overlay.addEventListener("pointerleave", endDraw);
+overlay.addEventListener("pointerdown", (e) => {
+  activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  overlay.setPointerCapture(e.pointerId);
+
+  if (drawEnabled) {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    beginDraw(e);
+    return;
+  }
+
+  if (activePointers.size === 1) {
+    lastPan = { x: e.clientX, y: e.clientY };
+  } else if (activePointers.size === 2) {
+    const pts = Array.from(activePointers.values());
+    lastPinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+  }
+});
+
+overlay.addEventListener("pointermove", (e) => {
+  if (!activePointers.has(e.pointerId)) return;
+  activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+  if (drawEnabled) {
+    moveDraw(e);
+    return;
+  }
+
+  if (!drawEnabled) {
+    if (activePointers.size === 1 && lastPan) {
+      const dx = e.clientX - lastPan.x;
+      const dy = e.clientY - lastPan.y;
+      offsetX += dx;
+      offsetY += dy;
+      lastPan = { x: e.clientX, y: e.clientY };
+      applyTransform();
+    } else if (activePointers.size === 2) {
+      const pts = Array.from(activePointers.values());
+      const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      const midX = (pts[0].x + pts[1].x) / 2;
+      const midY = (pts[0].y + pts[1].y) / 2;
+      if (lastPinchDist) {
+        let ratio = dist / lastPinchDist;
+        let newZoom = Math.min(3, Math.max(0.25, zoom * ratio));
+        const rect = overlay.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        offsetX += (midX - cx) * (1 - newZoom / zoom);
+        offsetY += (midY - cy) * (1 - newZoom / zoom);
+        zoom = newZoom;
+        zoomSlider.value = zoom;
+        applyTransform();
+      }
+      lastPinchDist = dist;
+    }
+  }
+});
+
+function finishPointer(e) {
+  activePointers.delete(e.pointerId);
+  if (drawingPointers.has(e.pointerId)) {
+    endDraw(e);
+  }
+  if (activePointers.size < 2) {
+    lastPinchDist = null;
+  }
+  if (!drawEnabled && activePointers.size === 1) {
+    const [p] = activePointers.values();
+    lastPan = { x: p.x, y: p.y };
+  } else {
+    lastPan = null;
+  }
+}
+overlay.addEventListener("pointerup", finishPointer);
+overlay.addEventListener("pointercancel", finishPointer);
+overlay.addEventListener("pointerleave", finishPointer);
 
 // ---------- Input selection ----------
 btnApplyInput.addEventListener("click", async () => {
