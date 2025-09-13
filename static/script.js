@@ -61,12 +61,11 @@ async function startStream(deviceId = undefined) {
     video.srcObject = stream;
     currentStream = stream;
     hint.style.display = "none";
+    // Ensure overlay matches the actual video size once metadata is ready
+    video.addEventListener("loadedmetadata", resizeCanvasToVideo, { once: true });
 
     // On first permission grant, populate labels for inputs
     await listVideoInputs();
-
-    // Resize canvas to match the rendered video area
-    requestAnimationFrame(resizeCanvasToVideo);
   } catch (err) {
     console.error(err);
     hint.textContent = "Camera access failed. Check permissions or device.";
