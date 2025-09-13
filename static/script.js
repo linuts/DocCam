@@ -182,7 +182,7 @@ function beginDraw(evt) {
   last = toLocalPoint(evt);
 }
 function moveDraw(evt) {
-  if (!drawing || !drawEnabled || evt.buttons !== 1) return;
+  if (!drawing || !drawEnabled) return;
   const p = toLocalPoint(evt);
   const dpr = window.devicePixelRatio || 1;
   ctx.strokeStyle = penColor.value;
