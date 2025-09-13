@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+  />
+  <title>Doc Cam Viewer</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <header class="toolbar">
+    <div class="left">
+      <button id="btnFullscreen" title="Full screen">⛶ Full Screen</button>
+      <button id="btnInvert" title="Invert colors">🌓 Invert</button>
+      <button id="btnRotate" title="Rotate 90°">⟳ Rotate</button>
+      <label class="zoom">
+        Zoom
+        <input id="zoomSlider" type="range" min="0.25" max="3" step="0.05" value="1">
+      </label>
+    </div>
+
+    <div class="middle">
+      <button id="btnDraw" title="Toggle draw mode">✏️ Draw</button>
+      <label>
+        Size
+        <input id="penSize" type="range" min="1" max="20" step="1" value="4">
+      </label>
+      <input id="penColor" type="color" value="#ff0000" title="Pen color">
+      <button id="btnClear" title="Clear drawings">🧽 Clear</button>
+    </div>
+
+    <div class="right">
+      <select id="inputSelect" title="Video input"></select>
+      <button id="btnApplyInput" title="Apply selected input">🔄 Change Input</button>
+    </div>
+  </header>
+
+  <main id="stage">
+    <div id="videoWrap">
+      <video id="video" autoplay playsinline></video>
+      <canvas id="overlay"></canvas>
+    </div>
+    <div id="hint" class="hint">Click “Allow” when the browser asks for camera access.</div>
+  </main>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
