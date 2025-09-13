@@ -10,6 +10,7 @@ const btnInvert = document.getElementById("btnInvert");
 const btnMirror = document.getElementById("btnMirror");
 const btnRotate = document.getElementById("btnRotate");
 const zoomSlider = document.getElementById("zoomSlider");
+const btnToggleMenu = document.getElementById("btnToggleMenu");
 
 const btnDraw = document.getElementById("btnDraw");
 const penSize = document.getElementById("penSize");
@@ -136,16 +137,21 @@ btnInvert.addEventListener("click", () => {
 
 // ---------- Fullscreen ----------
 btnFullscreen.addEventListener("click", async () => {
-  const el = document.documentElement; // or videoWrap
   try {
     if (!document.fullscreenElement) {
-      await (videoWrap.requestFullscreen?.call(videoWrap) || el.requestFullscreen());
+      await document.documentElement.requestFullscreen();
     } else {
       await document.exitFullscreen();
     }
   } catch (e) {
     console.warn("Fullscreen not allowed:", e);
   }
+});
+
+// ---------- Menu toggle ----------
+btnToggleMenu.addEventListener("click", () => {
+  document.body.classList.toggle("menu-collapsed");
+  btnToggleMenu.textContent = document.body.classList.contains("menu-collapsed") ? "»" : "«";
 });
 
 // ---------- Draw tool ----------
