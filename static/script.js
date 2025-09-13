@@ -26,6 +26,13 @@ let last = null;
 let rotation = 0;     // degrees (0, 90, 180, 270)
 let zoom = 1;         // scale factor (0.25 - 3)
 let mirrored = false; // horizontal flip
+let offsetX = 0, offsetY = 0; // pan offsets in px
+
+// track active pointers for pinch/drag gestures
+const activePointers = new Map();
+let drawingPointerId = null;
+let lastPan = null;
+let lastPinchDist = null;
 
 // ---------- Camera handling ----------
 async function listVideoInputs() {
@@ -102,7 +109,7 @@ function resizeCanvasToVideo() {
 // ---------- Transform handling (rotate + zoom) ----------
 function applyTransform() {
   const scaleX = mirrored ? -1 : 1;
-  const t = `scaleX(${scaleX}) rotate(${rotation}deg) scale(${zoom})`;
+  const t = `translate(${offsetX}px, ${offsetY}px) scaleX(${scaleX}) rotate(${rotation}deg) scale(${zoom})`;
   video.style.transform = t;
   overlay.style.transform = t;
 }
@@ -204,15 +211,83 @@ btnClear.addEventListener("click", () => {
 });
 
 overlay.addEventListener("pointerdown", (e) => {
-  if (e.button !== 0) return; // only react to left mouse button
-  e.preventDefault();
+  activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
   overlay.setPointerCapture(e.pointerId);
-  beginDraw(e);
+
+  if (drawEnabled) {
+    if (activePointers.size === 1 && e.button === 0) {
+      drawingPointerId = e.pointerId;
+      beginDraw(e);
+    }
+    return;
+  }
+
+  if (activePointers.size === 1) {
+    lastPan = { x: e.clientX, y: e.clientY };
+  } else if (activePointers.size === 2) {
+    const pts = Array.from(activePointers.values());
+    lastPinchDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+  }
 });
-overlay.addEventListener("pointermove", moveDraw);
-overlay.addEventListener("pointerup", endDraw);
-overlay.addEventListener("pointercancel", endDraw);
-overlay.addEventListener("pointerleave", endDraw);
+
+overlay.addEventListener("pointermove", (e) => {
+  if (!activePointers.has(e.pointerId)) return;
+  activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+  if (drawEnabled && e.pointerId === drawingPointerId) {
+    moveDraw(e);
+    return;
+  }
+
+  if (!drawEnabled) {
+    if (activePointers.size === 1 && lastPan) {
+      const dx = e.clientX - lastPan.x;
+      const dy = e.clientY - lastPan.y;
+      offsetX += dx;
+      offsetY += dy;
+      lastPan = { x: e.clientX, y: e.clientY };
+      applyTransform();
+    } else if (activePointers.size === 2) {
+      const pts = Array.from(activePointers.values());
+      const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+      const midX = (pts[0].x + pts[1].x) / 2;
+      const midY = (pts[0].y + pts[1].y) / 2;
+      if (lastPinchDist) {
+        let ratio = dist / lastPinchDist;
+        let newZoom = Math.min(3, Math.max(0.25, zoom * ratio));
+        const rect = overlay.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        offsetX += (midX - cx) * (1 - newZoom / zoom);
+        offsetY += (midY - cy) * (1 - newZoom / zoom);
+        zoom = newZoom;
+        zoomSlider.value = zoom;
+        applyTransform();
+      }
+      lastPinchDist = dist;
+    }
+  }
+});
+
+function finishPointer(e) {
+  activePointers.delete(e.pointerId);
+  if (e.pointerId === drawingPointerId) {
+    endDraw();
+    drawingPointerId = null;
+  }
+  if (activePointers.size < 2) {
+    lastPinchDist = null;
+  }
+  if (!drawEnabled && activePointers.size === 1) {
+    const [p] = activePointers.values();
+    lastPan = { x: p.x, y: p.y };
+  } else {
+    lastPan = null;
+  }
+}
+overlay.addEventListener("pointerup", finishPointer);
+overlay.addEventListener("pointercancel", finishPointer);
+overlay.addEventListener("pointerleave", finishPointer);
 
 // ---------- Input selection ----------
 btnApplyInput.addEventListener("click", async () => {
