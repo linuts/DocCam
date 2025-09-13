@@ -103,7 +103,9 @@ function resizeCanvasToVideo() {
 // ---------- Transform handling (rotate + zoom) ----------
 function applyTransform() {
   const scaleX = mirrored ? -1 : 1;
-  videoWrap.style.transform = `scaleX(${scaleX}) rotate(${rotation}deg) scale(${zoom})`;
+  const t = `scaleX(${scaleX}) rotate(${rotation}deg) scale(${zoom})`;
+  video.style.transform = t;
+  overlay.style.transform = t;
 }
 zoomSlider.addEventListener("input", () => {
   zoom = parseFloat(zoomSlider.value);

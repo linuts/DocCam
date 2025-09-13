@@ -54,7 +54,7 @@ label.zoom { display: inline-flex; gap: 8px; align-items: center; }
   background: #000;
   box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 0 1px #191d2a;
   transform-origin: center center;
-  transition: filter 150ms ease, transform 150ms ease;
+  transition: filter 150ms ease;
 }
 
 #video {
@@ -66,11 +66,15 @@ label.zoom { display: inline-flex; gap: 8px; align-items: center; }
   -webkit-user-select: none;
   -webkit-touch-callout: none;
   -webkit-user-drag: none;
+  transform-origin: center center;
+  transition: transform 150ms ease;
 }
 
 #overlay {
   position: absolute; inset: 0;
   touch-action: none; /* allow pointer events for drawing */
+  transform-origin: center center;
+  transition: transform 150ms ease;
 }
 
 .inverted #video {
