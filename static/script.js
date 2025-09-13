@@ -21,8 +21,6 @@ const btnApplyInput = document.getElementById("btnApplyInput");
 
 let currentStream = null;
 let drawEnabled = false;
-let drawing = false;
-let last = null;
 let rotation = 0;     // degrees (0, 90, 180, 270)
 let zoom = 1;         // scale factor (0.25 - 3)
 let mirrored = false; // horizontal flip
@@ -30,7 +28,8 @@ let offsetX = 0, offsetY = 0; // pan offsets in px
 
 // track active pointers for pinch/drag gestures
 const activePointers = new Map();
-let drawingPointerId = null;
+// track last points for active drawing pointers
+const drawingPointers = new Map();
 let lastPan = null;
 let lastPinchDist = null;
 
@@ -183,12 +182,11 @@ function toLocalPoint(evt) {
   return { x, y };
 }
 function beginDraw(evt) {
-  if (!drawEnabled) return;
-  drawing = true;
-  last = toLocalPoint(evt);
+  drawingPointers.set(evt.pointerId, toLocalPoint(evt));
 }
 function moveDraw(evt) {
-  if (!drawing || !drawEnabled) return;
+  const last = drawingPointers.get(evt.pointerId);
+  if (!last) return;
   const p = toLocalPoint(evt);
   const dpr = window.devicePixelRatio || 1;
   ctx.strokeStyle = penColor.value;
@@ -197,9 +195,11 @@ function moveDraw(evt) {
   ctx.moveTo(last.x, last.y);
   ctx.lineTo(p.x, p.y);
   ctx.stroke();
-  last = p;
+  drawingPointers.set(evt.pointerId, p);
 }
-function endDraw() { drawing = false; last = null; }
+function endDraw(evt) {
+  drawingPointers.delete(evt.pointerId);
+}
 
 btnDraw.addEventListener("click", () => {
   drawEnabled = !drawEnabled;
@@ -215,10 +215,8 @@ overlay.addEventListener("pointerdown", (e) => {
   overlay.setPointerCapture(e.pointerId);
 
   if (drawEnabled) {
-    if (activePointers.size === 1 && e.button === 0) {
-      drawingPointerId = e.pointerId;
-      beginDraw(e);
-    }
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    beginDraw(e);
     return;
   }
 
@@ -234,7 +232,7 @@ overlay.addEventListener("pointermove", (e) => {
   if (!activePointers.has(e.pointerId)) return;
   activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
-  if (drawEnabled && e.pointerId === drawingPointerId) {
+  if (drawEnabled) {
     moveDraw(e);
     return;
   }
@@ -271,9 +269,8 @@ overlay.addEventListener("pointermove", (e) => {
 
 function finishPointer(e) {
   activePointers.delete(e.pointerId);
-  if (e.pointerId === drawingPointerId) {
-    endDraw();
-    drawingPointerId = null;
+  if (drawingPointers.has(e.pointerId)) {
+    endDraw(e);
   }
   if (activePointers.size < 2) {
     lastPinchDist = null;
