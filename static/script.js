@@ -75,22 +75,30 @@ async function startStream(deviceId = undefined) {
 }
 
 function resizeCanvasToVideo() {
-  // Match overlay to the visible video box size
+  // Match overlay to the visible video box size while preserving drawings
   const rect = video.getBoundingClientRect();
-  // Set canvas internal size to device pixels for sharp lines
   const dpr = window.devicePixelRatio || 1;
+
+  // Save current drawing
+  const prev = document.createElement("canvas");
+  prev.width = overlay.width;
+  prev.height = overlay.height;
+  prev.getContext("2d").drawImage(overlay, 0, 0);
+
   overlay.width = Math.max(2, Math.floor(rect.width * dpr));
   overlay.height = Math.max(2, Math.floor(rect.height * dpr));
   overlay.style.width = `${rect.width}px`;
   overlay.style.height = `${rect.height}px`;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, overlay.width, overlay.height);
+  // Scale previous drawing to new size
+  ctx.drawImage(prev, 0, 0, prev.width, prev.height, 0, 0, overlay.width, overlay.height);
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
 }
 
-// Keep overlay in sync on resize / zoom / rotate
-const ro = new ResizeObserver(() => resizeCanvasToVideo());
-ro.observe(video);
+// Size the drawing canvas when the stream starts and on explicit resize
+// events so drawings persist through zoom/rotate/mirror transforms.
 
 // ---------- Transform handling (rotate + zoom) ----------
 function applyTransform() {
@@ -100,13 +108,10 @@ function applyTransform() {
 zoomSlider.addEventListener("input", () => {
   zoom = parseFloat(zoomSlider.value);
   applyTransform();
-  // Defer a canvas resize a bit so layout settles
-  setTimeout(resizeCanvasToVideo, 50);
 });
 btnRotate.addEventListener("click", () => {
   rotation = (rotation + 90) % 360;
   applyTransform();
-  setTimeout(resizeCanvasToVideo, 150);
 });
 
 // ---------- Mirror ----------
@@ -114,7 +119,6 @@ btnMirror.addEventListener("click", () => {
   mirrored = !mirrored;
   btnMirror.classList.toggle("active", mirrored);
   applyTransform();
-  setTimeout(resizeCanvasToVideo, 50);
 });
 
 // ---------- Invert ----------
@@ -139,9 +143,35 @@ btnFullscreen.addEventListener("click", async () => {
 
 // ---------- Draw tool ----------
 function toLocalPoint(evt) {
-  const r = overlay.getBoundingClientRect();
-  const x = evt.clientX - r.left;
-  const y = evt.clientY - r.top;
+  const rect = overlay.getBoundingClientRect();
+  // Coordinates relative to center of the element
+  let x = evt.clientX - (rect.left + rect.width / 2);
+  let y = evt.clientY - (rect.top + rect.height / 2);
+
+  // Undo overall zoom
+  x /= zoom;
+  y /= zoom;
+
+  // Undo rotation
+  switch (rotation) {
+    case 90:
+      [x, y] = [y, -x];
+      break;
+    case 180:
+      x = -x; y = -y;
+      break;
+    case 270:
+      [x, y] = [-y, x];
+      break;
+  }
+
+  // Undo mirroring
+  if (mirrored) x = -x;
+
+  // Convert back to top-left origin and device pixels
+  const dpr = window.devicePixelRatio || 1;
+  x = (x + overlay.clientWidth / 2) * dpr;
+  y = (y + overlay.clientHeight / 2) * dpr;
   return { x, y };
 }
 function beginDraw(evt) {
@@ -152,8 +182,9 @@ function beginDraw(evt) {
 function moveDraw(evt) {
   if (!drawing || !drawEnabled) return;
   const p = toLocalPoint(evt);
+  const dpr = window.devicePixelRatio || 1;
   ctx.strokeStyle = penColor.value;
-  ctx.lineWidth = parseInt(penSize.value, 10) || 4;
+  ctx.lineWidth = (parseInt(penSize.value, 10) || 4) * dpr / zoom;
   ctx.beginPath();
   ctx.moveTo(last.x, last.y);
   ctx.lineTo(p.x, p.y);
@@ -168,8 +199,7 @@ btnDraw.addEventListener("click", () => {
   overlay.style.cursor = drawEnabled ? "crosshair" : "default";
 });
 btnClear.addEventListener("click", () => {
-  const r = overlay.getBoundingClientRect();
-  ctx.clearRect(0, 0, r.width, r.height);
+  ctx.clearRect(0, 0, overlay.width, overlay.height);
 });
 
 overlay.addEventListener("pointerdown", (e) => { overlay.setPointerCapture(e.pointerId); beginDraw(e); });
