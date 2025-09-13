@@ -180,7 +180,7 @@ function beginDraw(evt) {
   last = toLocalPoint(evt);
 }
 function moveDraw(evt) {
-  if (!drawing || !drawEnabled) return;
+  if (!drawing || !drawEnabled || evt.buttons !== 1) return;
   const p = toLocalPoint(evt);
   const dpr = window.devicePixelRatio || 1;
   ctx.strokeStyle = penColor.value;
@@ -202,7 +202,12 @@ btnClear.addEventListener("click", () => {
   ctx.clearRect(0, 0, overlay.width, overlay.height);
 });
 
-overlay.addEventListener("pointerdown", (e) => { overlay.setPointerCapture(e.pointerId); beginDraw(e); });
+overlay.addEventListener("pointerdown", (e) => {
+  if (e.button !== 0) return; // only react to left mouse button
+  e.preventDefault();
+  overlay.setPointerCapture(e.pointerId);
+  beginDraw(e);
+});
 overlay.addEventListener("pointermove", moveDraw);
 overlay.addEventListener("pointerup", endDraw);
 overlay.addEventListener("pointercancel", endDraw);
