@@ -7,6 +7,7 @@ const hint = document.getElementById("hint");
 
 const btnFullscreen = document.getElementById("btnFullscreen");
 const btnInvert = document.getElementById("btnInvert");
+const btnMirror = document.getElementById("btnMirror");
 const btnRotate = document.getElementById("btnRotate");
 const zoomSlider = document.getElementById("zoomSlider");
 
@@ -24,6 +25,7 @@ let drawing = false;
 let last = null;
 let rotation = 0;     // degrees (0, 90, 180, 270)
 let zoom = 1;         // scale factor (0.25 - 3)
+let mirrored = false; // horizontal flip
 
 // ---------- Camera handling ----------
 async function listVideoInputs() {
@@ -81,7 +83,7 @@ function resizeCanvasToVideo() {
   overlay.height = Math.max(2, Math.floor(rect.height * dpr));
   overlay.style.width = `${rect.width}px`;
   overlay.style.height = `${rect.height}px`;
-  ctx.scale(dpr, dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
 }
@@ -92,7 +94,8 @@ ro.observe(video);
 
 // ---------- Transform handling (rotate + zoom) ----------
 function applyTransform() {
-  videoWrap.style.transform = `rotate(${rotation}deg) scale(${zoom})`;
+  const scaleX = mirrored ? -1 : 1;
+  videoWrap.style.transform = `scaleX(${scaleX}) rotate(${rotation}deg) scale(${zoom})`;
 }
 zoomSlider.addEventListener("input", () => {
   zoom = parseFloat(zoomSlider.value);
@@ -104,6 +107,14 @@ btnRotate.addEventListener("click", () => {
   rotation = (rotation + 90) % 360;
   applyTransform();
   setTimeout(resizeCanvasToVideo, 150);
+});
+
+// ---------- Mirror ----------
+btnMirror.addEventListener("click", () => {
+  mirrored = !mirrored;
+  btnMirror.classList.toggle("active", mirrored);
+  applyTransform();
+  setTimeout(resizeCanvasToVideo, 50);
 });
 
 // ---------- Invert ----------
