@@ -74,8 +74,14 @@ Possible ways to extend or adjust DocCam:
 
 - **Styling** – Update `style.css` to change layout, colors, button styles, etc.  
 - **Image formats / capture options** – Enhance `script.js` to support different file formats (PNG, JPEG, etc.), adjust resolution, compression quality.  
-- **User interface** – Add features like cropping, zoom, rotate, etc.  
-- **Saving/exporting** – Integrate download options or save to cloud/local storage.  
+- **User interface** – Add features like cropping, zoom, rotate, etc.
+- **Saving/exporting** – Integrate download options or save to cloud/local storage.
+
+---
+
+## Privacy Notice
+
+DocCam runs entirely within your browser. Camera access and image capture stay on your device, and **no data is sent back to any server**.
 
 ---
 
