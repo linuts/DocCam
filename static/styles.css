@@ -31,33 +31,33 @@ html, body {
   flex-direction: column;
   gap: 8px;
 }
-.toolbar .section-main {
+.toolbar .full-row {
+  width: 100%;
+  display: block;
+}
+.section-transform {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.section-zoom input[type="range"],
+.section-pen input[type="range"] {
+  width: 100%;
+}
+.section-draw {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 8px;
 }
-.toolbar .section-zoom input[type="range"] {
-  width: 100%;
-}
-.toolbar .section-input {
+.section-input {
   margin-top: auto;
-}
-.toolbar .section-paint {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 8px;
-  align-items: center;
-}
-.section-paint .paint-controls {
-  display: flex;
-  flex-direction: column;
   gap: 8px;
 }
 .color-palette {
   display: flex;
-  flex-direction: column;
   gap: 6px;
-  align-items: center;
 }
 .color-swatch {
   width: 24px;
@@ -71,9 +71,7 @@ html, body {
 .color-swatch.active {
   border-color: var(--accent);
 }
-.section-paint input[type="color"] {
-  display: none;
-}
+
 .toolbar label {
   display: flex;
   flex-direction: column;
@@ -93,7 +91,6 @@ input[type="range"] {
 }
 button:hover { border-color: var(--accent); }
 button.active { outline: 2px solid var(--accent); }
-
 
 #stage {
   height: 100vh;

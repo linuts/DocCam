@@ -12,10 +12,11 @@
 <body>
   <button id="btnToggleMenu" class="menu-toggle" title="Toggle menu">«</button>
   <header class="toolbar">
-    <div class="section section-main">
-      <button id="btnFullscreen" title="Full screen">⛶ Full Screen</button>
+    <button id="btnFullscreen" class="full-row" title="Full screen">⛶ Full Screen</button>
+
+    <div class="section section-transform">
       <button id="btnInvert" title="Invert colors">🌓 Invert</button>
-      <button id="btnMirror" title="Mirror image">⇋ Mirror</button>
+      <button id="btnFlip" title="Flip image">⇋ Flip</button>
       <button id="btnRotate" title="Rotate 90°">⟳ Rotate</button>
     </div>
 
@@ -24,15 +25,12 @@
       <input id="zoomSlider" type="range" min="0.25" max="3" step="0.05" value="1">
     </div>
 
-    <div class="section section-paint">
-      <div class="paint-controls">
-        <button id="btnDraw" title="Toggle draw mode">✏️ Draw</button>
-        <label>
-          Size
-          <input id="penSize" type="range" min="1" max="20" step="1" value="4">
-        </label>
-        <button id="btnClear" title="Clear drawings">🧽 Clear</button>
-      </div>
+    <div class="section section-draw">
+      <button id="btnDraw" title="Toggle draw mode">✏️ Draw</button>
+      <button id="btnClear" title="Clear drawings">🧽 Clear</button>
+    </div>
+
+    <div class="section section-colors">
       <div class="color-palette" id="colorPalette">
         <button class="color-swatch active" data-color="#ff0000" style="background:#ff0000" title="Red"></button>
         <button class="color-swatch" data-color="#00ff00" style="background:#00ff00" title="Green"></button>
@@ -41,6 +39,11 @@
         <button class="color-swatch" data-color="#ffffff" style="background:#ffffff" title="White"></button>
       </div>
       <input id="penColor" type="color" value="#ff0000" title="Pen color" hidden>
+    </div>
+
+    <div class="section section-pen">
+      <label for="penSize">Pen Size</label>
+      <input id="penSize" type="range" min="1" max="20" step="1" value="4">
     </div>
 
     <div class="section section-input">

@@ -7,7 +7,7 @@ const hint = document.getElementById("hint");
 
 const btnFullscreen = document.getElementById("btnFullscreen");
 const btnInvert = document.getElementById("btnInvert");
-const btnMirror = document.getElementById("btnMirror");
+const btnFlip = document.getElementById("btnFlip");
 const btnRotate = document.getElementById("btnRotate");
 const zoomSlider = document.getElementById("zoomSlider");
 const btnToggleMenu = document.getElementById("btnToggleMenu");
@@ -126,10 +126,10 @@ btnRotate.addEventListener("click", () => {
   applyTransform();
 });
 
-// ---------- Mirror ----------
-btnMirror.addEventListener("click", () => {
+// ---------- Flip ----------
+btnFlip.addEventListener("click", () => {
   mirrored = !mirrored;
-  btnMirror.classList.toggle("active", mirrored);
+  btnFlip.classList.toggle("active", mirrored);
   applyTransform();
 });
 
