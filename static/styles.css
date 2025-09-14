@@ -42,6 +42,38 @@ html, body {
 .toolbar .section-input {
   margin-top: auto;
 }
+.toolbar .section-paint {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.section-paint .paint-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.color-palette {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+.color-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid #2a2f41;
+  background: currentColor;
+  cursor: pointer;
+  padding: 0;
+}
+.color-swatch.active {
+  border-color: var(--accent);
+}
+.section-paint input[type="color"] {
+  display: none;
+}
 .toolbar label {
   display: flex;
   flex-direction: column;

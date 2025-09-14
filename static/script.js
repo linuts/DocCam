@@ -16,6 +16,10 @@ const btnDraw = document.getElementById("btnDraw");
 const penSize = document.getElementById("penSize");
 const penColor = document.getElementById("penColor");
 const btnClear = document.getElementById("btnClear");
+const colorPalette = document.getElementById("colorPalette");
+
+const activeSwatch = colorPalette.querySelector(".color-swatch.active");
+if (activeSwatch) penColor.value = activeSwatch.dataset.color;
 
 const inputSelect = document.getElementById("inputSelect");
 const btnApplyInput = document.getElementById("btnApplyInput");
@@ -214,6 +218,14 @@ btnDraw.addEventListener("click", () => {
 });
 btnClear.addEventListener("click", () => {
   ctx.clearRect(0, 0, overlay.width, overlay.height);
+});
+
+colorPalette.querySelectorAll(".color-swatch").forEach(btn => {
+  btn.addEventListener("click", () => {
+    penColor.value = btn.dataset.color;
+    colorPalette.querySelectorAll(".color-swatch").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+  });
 });
 
 overlay.addEventListener("pointerdown", (e) => {
