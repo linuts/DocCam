@@ -25,6 +25,7 @@ if (activeSwatch) penColor.value = activeSwatch.dataset.color;
 const inputSelect = document.getElementById("inputSelect");
 
 let currentStream = null;
+let currentDeviceId = null;
 let drawEnabled = false;
 let rotation = 0;     // degrees (0, 90, 180, 270)
 let zoom = 1;         // scale factor (0.25 - 3)
@@ -39,6 +40,52 @@ const drawingPointers = new Map();
 let lastPan = null;
 let lastPinchDist = null;
 
+function saveSettings(id) {
+  if (!id) return;
+  const settings = {
+    rotation,
+    zoom,
+    mirrored,
+    inverted: videoWrap.classList.contains("inverted"),
+    offsetX,
+    offsetY,
+  };
+  localStorage.setItem(`camSettings-${id}`, JSON.stringify(settings));
+}
+
+function loadSettings(id) {
+  const data = localStorage.getItem(`camSettings-${id}`);
+  if (data) {
+    try {
+      const s = JSON.parse(data);
+      rotation = s.rotation || 0;
+      zoom = s.zoom || 1;
+      mirrored = s.mirrored || false;
+      offsetX = s.offsetX || 0;
+      offsetY = s.offsetY || 0;
+      zoomSlider.value = zoom;
+      btnFlip.classList.toggle("active", mirrored);
+      if (s.inverted) videoWrap.classList.add("inverted");
+      else videoWrap.classList.remove("inverted");
+      btnInvert.classList.toggle("active", videoWrap.classList.contains("inverted"));
+      applyTransform();
+      return;
+    } catch (e) {
+      console.warn("Failed to load settings", e);
+    }
+  }
+  rotation = 0;
+  zoom = 1;
+  mirrored = false;
+  offsetX = 0;
+  offsetY = 0;
+  zoomSlider.value = 1;
+  btnFlip.classList.remove("active");
+  videoWrap.classList.remove("inverted");
+  btnInvert.classList.remove("active");
+  applyTransform();
+}
+
 // ---------- Camera handling ----------
 async function listVideoInputs() {
   const devices = await navigator.mediaDevices.enumerateDevices();
@@ -50,10 +97,11 @@ async function listVideoInputs() {
     opt.textContent = d.label || `Camera ${i + 1}`;
     inputSelect.appendChild(opt);
   });
+  if (currentDeviceId) inputSelect.value = currentDeviceId;
 }
 
 async function startStream(deviceId = undefined) {
-  // Stop previous
+  if (currentDeviceId) saveSettings(currentDeviceId);
   if (currentStream) {
     currentStream.getTracks().forEach(t => t.stop());
     currentStream = null;
@@ -73,6 +121,12 @@ async function startStream(deviceId = undefined) {
     video.srcObject = stream;
     currentStream = stream;
     hint.style.display = "none";
+    // Determine the actual device ID of the stream
+    const track = stream.getVideoTracks()[0];
+    currentDeviceId = track.getSettings().deviceId || deviceId || null;
+    inputSelect.value = currentDeviceId || "";
+    localStorage.setItem("lastCamera", currentDeviceId || "");
+    loadSettings(currentDeviceId);
     // Ensure overlay matches the actual video size once metadata is ready
     video.addEventListener("loadedmetadata", resizeCanvasToVideo, { once: true });
 
@@ -121,10 +175,12 @@ function applyTransform() {
 zoomSlider.addEventListener("input", () => {
   zoom = parseFloat(zoomSlider.value);
   applyTransform();
+  saveSettings(currentDeviceId);
 });
 btnRotate.addEventListener("click", () => {
   rotation = (rotation + 90) % 360;
   applyTransform();
+  saveSettings(currentDeviceId);
 });
 
 // ---------- Flip ----------
@@ -132,12 +188,14 @@ btnFlip.addEventListener("click", () => {
   mirrored = !mirrored;
   btnFlip.classList.toggle("active", mirrored);
   applyTransform();
+  saveSettings(currentDeviceId);
 });
 
 // ---------- Invert ----------
 btnInvert.addEventListener("click", () => {
   videoWrap.classList.toggle("inverted");
   btnInvert.classList.toggle("active", videoWrap.classList.contains("inverted"));
+  saveSettings(currentDeviceId);
 });
 
 // ---------- Fullscreen ----------
@@ -305,6 +363,9 @@ function finishPointer(e) {
   if (activePointers.size < 2) {
     lastPinchDist = null;
   }
+  if (!drawEnabled && activePointers.size === 0) {
+    saveSettings(currentDeviceId);
+  }
   if (!drawEnabled && activePointers.size === 1) {
     const [p] = activePointers.values();
     lastPan = { x: p.x, y: p.y };
@@ -324,9 +385,8 @@ inputSelect.addEventListener("change", async () => {
 
 // On load: request camera & populate inputs
 (async () => {
-  // Request initial camera to populate labels
-  await startStream();
-  // For browsers that require enumerate after permission
+  const last = localStorage.getItem("lastCamera");
+  await startStream(last || undefined);
   try { await listVideoInputs(); } catch {}
 })();
 
