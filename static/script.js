@@ -34,7 +34,7 @@ let frozen = false;
 let offsetX = 0, offsetY = 0; // pan offsets in px
 
 function updateRotateButton() {
-  btnRotate.textContent = `⟳ ${rotation}°`;
+  btnRotate.textContent = `Rotate - ${rotation}°`;
   btnRotate.classList.toggle("active", rotation !== 0);
 }
 updateRotateButton();
