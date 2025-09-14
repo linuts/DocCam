@@ -4,7 +4,6 @@ const ctx = overlay.getContext("2d");
 
 const videoWrap = document.getElementById("videoWrap");
 const hint = document.getElementById("hint");
-const defaultHint = hint.textContent;
 
 const btnFullscreen = document.getElementById("btnFullscreen");
 const btnFreeze = document.getElementById("btnFreeze");
@@ -37,6 +36,15 @@ let zoom = 1;         // scale factor (0.25 - 3)
 let mirrored = false; // horizontal flip
 let frozen = false;
 let offsetX = 0, offsetY = 0; // pan offsets in px
+
+function showHint(message, type = "info", timeout = 0) {
+  hint.textContent = message;
+  hint.classList.remove("alert-info", "alert-danger", "d-none");
+  hint.classList.add(`alert-${type}`);
+  if (timeout > 0) {
+    setTimeout(() => hint.classList.add("d-none"), timeout);
+  }
+}
 
 function updateRotateButton() {
   btnRotate.textContent = `Rotate - ${rotation}°`;
@@ -133,9 +141,7 @@ async function startStream(deviceId = undefined) {
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
     video.srcObject = stream;
     currentStream = stream;
-    hint.textContent = defaultHint;
-    hint.classList.remove("alert-danger");
-    hint.classList.add("alert-info", "d-none");
+    showHint("Camera ready", "info", 3000);
     // Determine the actual device ID of the stream
     const track = stream.getVideoTracks()[0];
     currentDeviceId = track.getSettings().deviceId || deviceId || null;
@@ -149,9 +155,7 @@ async function startStream(deviceId = undefined) {
     await listVideoInputs();
   } catch (err) {
     console.error(err);
-    hint.textContent = "Camera access failed. Check permissions or device.";
-    hint.classList.remove("alert-info", "d-none");
-    hint.classList.add("alert-danger");
+    showHint("Camera access failed. Check permissions or device.", "danger");
   }
 }
 
