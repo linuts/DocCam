@@ -14,6 +14,7 @@ const zoomSlider = document.getElementById("zoomSlider");
 const btnToggleMenu = document.getElementById("btnToggleMenu");
 
 const btnDraw = document.getElementById("btnDraw");
+const btnErase = document.getElementById("btnErase");
 const penSize = document.getElementById("penSize");
 const penColor = document.getElementById("penColor");
 const btnClear = document.getElementById("btnClear");
@@ -27,6 +28,7 @@ const inputSelect = document.getElementById("inputSelect");
 let currentStream = null;
 let currentDeviceId = null;
 let drawEnabled = false;
+let eraserMode = false;
 let rotation = 0;     // degrees (0, 90, 180, 270)
 let zoom = 1;         // scale factor (0.25 - 3)
 let mirrored = false; // horizontal flip
@@ -278,12 +280,14 @@ function moveDraw(evt) {
   if (!last) return;
   const p = toLocalPoint(evt);
   const dpr = window.devicePixelRatio || 1;
-  ctx.strokeStyle = penColor.value;
+  ctx.globalCompositeOperation = eraserMode ? "destination-out" : "source-over";
+  ctx.strokeStyle = eraserMode ? "rgba(0,0,0,1)" : penColor.value;
   ctx.lineWidth = (parseInt(penSize.value, 10) || 4) * dpr / zoom;
   ctx.beginPath();
   ctx.moveTo(last.x, last.y);
   ctx.lineTo(p.x, p.y);
   ctx.stroke();
+  ctx.globalCompositeOperation = "source-over";
   drawingPointers.set(evt.pointerId, p);
 }
 function endDraw(evt) {
@@ -291,9 +295,18 @@ function endDraw(evt) {
 }
 
 btnDraw.addEventListener("click", () => {
-  drawEnabled = !drawEnabled;
-  btnDraw.classList.toggle("active", drawEnabled);
-  overlay.style.cursor = drawEnabled ? "crosshair" : "default";
+  const active = btnDraw.classList.toggle("active");
+  btnErase.classList.remove("active");
+  eraserMode = false;
+  drawEnabled = active;
+  overlay.style.cursor = active ? "crosshair" : "default";
+});
+btnErase.addEventListener("click", () => {
+  const active = btnErase.classList.toggle("active");
+  btnDraw.classList.remove("active");
+  eraserMode = active;
+  drawEnabled = active;
+  overlay.style.cursor = active ? "crosshair" : "default";
 });
 btnClear.addEventListener("click", () => {
   ctx.clearRect(0, 0, overlay.width, overlay.height);
