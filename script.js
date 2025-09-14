@@ -133,9 +133,9 @@ async function startStream(deviceId = undefined) {
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
     video.srcObject = stream;
     currentStream = stream;
-    hint.classList.remove("error");
     hint.textContent = defaultHint;
-    hint.style.display = "none";
+    hint.classList.remove("alert-danger");
+    hint.classList.add("alert-info", "d-none");
     // Determine the actual device ID of the stream
     const track = stream.getVideoTracks()[0];
     currentDeviceId = track.getSettings().deviceId || deviceId || null;
@@ -150,8 +150,8 @@ async function startStream(deviceId = undefined) {
   } catch (err) {
     console.error(err);
     hint.textContent = "Camera access failed. Check permissions or device.";
-    hint.classList.add("error");
-    hint.style.display = "block";
+    hint.classList.remove("alert-info", "d-none");
+    hint.classList.add("alert-danger");
   }
 }
 

@@ -135,25 +135,6 @@ button.active { outline: 2px solid var(--accent); }
   filter: invert(1) hue-rotate(180deg);
 }
 
-.hint {
-  position: absolute; bottom: 10px; left: 50%;
-  transform: translateX(-50%);
-  color: var(--muted); font-size: 13px;
-  background: #0b0d12d0; padding: 6px 10px; border-radius: 8px;
-  border: 1px solid #1e2333;
-}
-
-.hint.error {
-  top: 50%;
-  bottom: auto;
-  transform: translate(-50%, -50%);
-  font-size: 16px;
-  font-weight: bold;
-  color: #fff;
-  background: #b00020;
-  border-color: #ff5a5f;
-  padding: 10px 16px;
-}
 
 .menu-toggle {
   position: fixed;
