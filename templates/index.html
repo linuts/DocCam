@@ -12,18 +12,19 @@
 <body>
   <button id="btnToggleMenu" class="menu-toggle" title="Toggle menu">«</button>
   <header class="toolbar">
-    <div class="left">
+    <div class="section section-main">
       <button id="btnFullscreen" title="Full screen">⛶ Full Screen</button>
       <button id="btnInvert" title="Invert colors">🌓 Invert</button>
       <button id="btnMirror" title="Mirror image">⇋ Mirror</button>
       <button id="btnRotate" title="Rotate 90°">⟳ Rotate</button>
-      <label class="zoom">
-        Zoom
-        <input id="zoomSlider" type="range" min="0.25" max="3" step="0.05" value="1">
-      </label>
     </div>
 
-    <div class="middle">
+    <div class="section section-zoom">
+      <label for="zoomSlider">Zoom</label>
+      <input id="zoomSlider" type="range" min="0.25" max="3" step="0.05" value="1">
+    </div>
+
+    <div class="section section-draw">
       <button id="btnDraw" title="Toggle draw mode">✏️ Draw</button>
       <label>
         Size
@@ -33,7 +34,7 @@
       <button id="btnClear" title="Clear drawings">🧽 Clear</button>
     </div>
 
-    <div class="right">
+    <div class="section section-input">
       <select id="inputSelect" title="Video input"></select>
       <button id="btnApplyInput" title="Apply selected input">🔄 Change Input</button>
     </div>

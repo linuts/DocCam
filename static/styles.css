@@ -17,7 +17,7 @@ html, body {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   padding: 12px;
   border-right: 1px solid #1c2030;
   background: #0b0d12cc;
@@ -26,21 +26,42 @@ html, body {
   transform: translateX(0);
   transition: transform 150ms ease;
 }
-.toolbar .left, .toolbar .middle, .toolbar .right {
-  display: flex; flex-direction: column; align-items: stretch; gap: 8px;
+.toolbar .section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
-.toolbar .middle { flex-grow: 1; justify-content: center; }
-.toolbar .right { justify-content: flex-end; }
+.toolbar .section-main {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.toolbar .section-zoom input[type="range"] {
+  width: 100%;
+}
+.toolbar .section-input {
+  margin-top: auto;
+}
+.toolbar label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+}
 
-button, select, input[type="range"], input[type="color"] {
+button, select, input[type="color"] {
   background: #171a23; color: var(--fg);
   border: 1px solid #2a2f41; border-radius: 10px;
   padding: 8px 12px; font-size: 14px;
 }
+input[type="range"] {
+  background: #171a23;
+  border: 1px solid #2a2f41; border-radius: 10px;
+  padding: 0; height: 32px;
+}
 button:hover { border-color: var(--accent); }
 button.active { outline: 2px solid var(--accent); }
 
-label.zoom { display: inline-flex; gap: 8px; align-items: center; }
 
 #stage {
   height: 100vh;
