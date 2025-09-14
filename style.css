@@ -33,6 +33,15 @@ html, body {
 .text-center { text-align: center; }
 .d-none { display: none !important; }
 
+#hint {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 40px;
+  margin: 0;
+  z-index: 30;
+}
+
 .toolbar {
   width: var(--toolbar-w);
   height: 100vh;
