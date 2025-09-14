@@ -4,6 +4,7 @@ const ctx = overlay.getContext("2d");
 
 const videoWrap = document.getElementById("videoWrap");
 const hint = document.getElementById("hint");
+const defaultHint = hint.textContent;
 
 const btnFullscreen = document.getElementById("btnFullscreen");
 const btnFreeze = document.getElementById("btnFreeze");
@@ -24,6 +25,8 @@ const activeSwatch = colorPalette.querySelector(".color-swatch.active");
 if (activeSwatch) penColor.value = activeSwatch.dataset.color;
 
 const inputSelect = document.getElementById("inputSelect");
+const yearSpan = document.getElementById("year");
+if (yearSpan) yearSpan.textContent = new Date().getFullYear();
 
 let currentStream = null;
 let currentDeviceId = null;
@@ -130,6 +133,8 @@ async function startStream(deviceId = undefined) {
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
     video.srcObject = stream;
     currentStream = stream;
+    hint.classList.remove("error");
+    hint.textContent = defaultHint;
     hint.style.display = "none";
     // Determine the actual device ID of the stream
     const track = stream.getVideoTracks()[0];
@@ -145,6 +150,7 @@ async function startStream(deviceId = undefined) {
   } catch (err) {
     console.error(err);
     hint.textContent = "Camera access failed. Check permissions or device.";
+    hint.classList.add("error");
     hint.style.display = "block";
   }
 }
