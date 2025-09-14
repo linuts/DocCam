@@ -6,25 +6,40 @@ const videoWrap = document.getElementById("videoWrap");
 const hint = document.getElementById("hint");
 
 const btnFullscreen = document.getElementById("btnFullscreen");
+const btnFreeze = document.getElementById("btnFreeze");
 const btnInvert = document.getElementById("btnInvert");
-const btnMirror = document.getElementById("btnMirror");
+const btnFlip = document.getElementById("btnFlip");
 const btnRotate = document.getElementById("btnRotate");
 const zoomSlider = document.getElementById("zoomSlider");
+const btnToggleMenu = document.getElementById("btnToggleMenu");
 
 const btnDraw = document.getElementById("btnDraw");
+const btnErase = document.getElementById("btnErase");
 const penSize = document.getElementById("penSize");
 const penColor = document.getElementById("penColor");
 const btnClear = document.getElementById("btnClear");
+const colorPalette = document.getElementById("colorPalette");
+
+const activeSwatch = colorPalette.querySelector(".color-swatch.active");
+if (activeSwatch) penColor.value = activeSwatch.dataset.color;
 
 const inputSelect = document.getElementById("inputSelect");
-const btnApplyInput = document.getElementById("btnApplyInput");
 
 let currentStream = null;
+let currentDeviceId = null;
 let drawEnabled = false;
+let eraserMode = false;
 let rotation = 0;     // degrees (0, 90, 180, 270)
 let zoom = 1;         // scale factor (0.25 - 3)
 let mirrored = false; // horizontal flip
+let frozen = false;
 let offsetX = 0, offsetY = 0; // pan offsets in px
+
+function updateRotateButton() {
+  btnRotate.textContent = `Rotate - ${rotation}°`;
+  btnRotate.classList.toggle("active", rotation !== 0);
+}
+updateRotateButton();
 
 // track active pointers for pinch/drag gestures
 const activePointers = new Map();
@@ -32,6 +47,54 @@ const activePointers = new Map();
 const drawingPointers = new Map();
 let lastPan = null;
 let lastPinchDist = null;
+
+function saveSettings(id) {
+  if (!id) return;
+  const settings = {
+    rotation,
+    zoom,
+    mirrored,
+    inverted: videoWrap.classList.contains("inverted"),
+    offsetX,
+    offsetY,
+  };
+  localStorage.setItem(`camSettings-${id}`, JSON.stringify(settings));
+}
+
+function loadSettings(id) {
+  const data = localStorage.getItem(`camSettings-${id}`);
+  if (data) {
+    try {
+      const s = JSON.parse(data);
+      rotation = s.rotation || 0;
+      zoom = s.zoom || 1;
+      mirrored = s.mirrored || false;
+      offsetX = s.offsetX || 0;
+      offsetY = s.offsetY || 0;
+      zoomSlider.value = zoom;
+      btnFlip.classList.toggle("active", mirrored);
+      updateRotateButton();
+      if (s.inverted) videoWrap.classList.add("inverted");
+      else videoWrap.classList.remove("inverted");
+      btnInvert.classList.toggle("active", videoWrap.classList.contains("inverted"));
+      applyTransform();
+      return;
+    } catch (e) {
+      console.warn("Failed to load settings", e);
+    }
+  }
+  rotation = 0;
+  zoom = 1;
+  mirrored = false;
+  offsetX = 0;
+  offsetY = 0;
+  zoomSlider.value = 1;
+  btnFlip.classList.remove("active");
+  videoWrap.classList.remove("inverted");
+  btnInvert.classList.remove("active");
+  updateRotateButton();
+  applyTransform();
+}
 
 // ---------- Camera handling ----------
 async function listVideoInputs() {
@@ -44,10 +107,11 @@ async function listVideoInputs() {
     opt.textContent = d.label || `Camera ${i + 1}`;
     inputSelect.appendChild(opt);
   });
+  if (currentDeviceId) inputSelect.value = currentDeviceId;
 }
 
 async function startStream(deviceId = undefined) {
-  // Stop previous
+  if (currentDeviceId) saveSettings(currentDeviceId);
   if (currentStream) {
     currentStream.getTracks().forEach(t => t.stop());
     currentStream = null;
@@ -67,6 +131,12 @@ async function startStream(deviceId = undefined) {
     video.srcObject = stream;
     currentStream = stream;
     hint.style.display = "none";
+    // Determine the actual device ID of the stream
+    const track = stream.getVideoTracks()[0];
+    currentDeviceId = track.getSettings().deviceId || deviceId || null;
+    inputSelect.value = currentDeviceId || "";
+    localStorage.setItem("lastCamera", currentDeviceId || "");
+    loadSettings(currentDeviceId);
     // Ensure overlay matches the actual video size once metadata is ready
     video.addEventListener("loadedmetadata", resizeCanvasToVideo, { once: true });
 
@@ -115,37 +185,58 @@ function applyTransform() {
 zoomSlider.addEventListener("input", () => {
   zoom = parseFloat(zoomSlider.value);
   applyTransform();
+  saveSettings(currentDeviceId);
 });
 btnRotate.addEventListener("click", () => {
   rotation = (rotation + 90) % 360;
+  updateRotateButton();
   applyTransform();
+  saveSettings(currentDeviceId);
 });
 
-// ---------- Mirror ----------
-btnMirror.addEventListener("click", () => {
+// ---------- Flip ----------
+btnFlip.addEventListener("click", () => {
   mirrored = !mirrored;
-  btnMirror.classList.toggle("active", mirrored);
+  btnFlip.classList.toggle("active", mirrored);
   applyTransform();
+  saveSettings(currentDeviceId);
 });
 
 // ---------- Invert ----------
 btnInvert.addEventListener("click", () => {
   videoWrap.classList.toggle("inverted");
   btnInvert.classList.toggle("active", videoWrap.classList.contains("inverted"));
+  saveSettings(currentDeviceId);
 });
 
 // ---------- Fullscreen ----------
 btnFullscreen.addEventListener("click", async () => {
-  const el = document.documentElement; // or videoWrap
   try {
     if (!document.fullscreenElement) {
-      await (videoWrap.requestFullscreen?.call(videoWrap) || el.requestFullscreen());
+      await document.documentElement.requestFullscreen();
     } else {
       await document.exitFullscreen();
     }
   } catch (e) {
     console.warn("Fullscreen not allowed:", e);
   }
+});
+
+// ---------- Freeze ----------
+btnFreeze.addEventListener("click", () => {
+  frozen = !frozen;
+  if (frozen) {
+    video.pause();
+  } else {
+    video.play();
+  }
+  btnFreeze.classList.toggle("active", frozen);
+});
+
+// ---------- Menu toggle ----------
+btnToggleMenu.addEventListener("click", () => {
+  document.body.classList.toggle("menu-collapsed");
+  btnToggleMenu.textContent = document.body.classList.contains("menu-collapsed") ? "»" : "«";
 });
 
 // ---------- Draw tool ----------
@@ -189,12 +280,14 @@ function moveDraw(evt) {
   if (!last) return;
   const p = toLocalPoint(evt);
   const dpr = window.devicePixelRatio || 1;
-  ctx.strokeStyle = penColor.value;
+  ctx.globalCompositeOperation = eraserMode ? "destination-out" : "source-over";
+  ctx.strokeStyle = eraserMode ? "rgba(0,0,0,1)" : penColor.value;
   ctx.lineWidth = (parseInt(penSize.value, 10) || 4) * dpr / zoom;
   ctx.beginPath();
   ctx.moveTo(last.x, last.y);
   ctx.lineTo(p.x, p.y);
   ctx.stroke();
+  ctx.globalCompositeOperation = "source-over";
   drawingPointers.set(evt.pointerId, p);
 }
 function endDraw(evt) {
@@ -202,12 +295,29 @@ function endDraw(evt) {
 }
 
 btnDraw.addEventListener("click", () => {
-  drawEnabled = !drawEnabled;
-  btnDraw.classList.toggle("active", drawEnabled);
-  overlay.style.cursor = drawEnabled ? "crosshair" : "default";
+  const active = btnDraw.classList.toggle("active");
+  btnErase.classList.remove("active");
+  eraserMode = false;
+  drawEnabled = active;
+  overlay.style.cursor = active ? "crosshair" : "default";
+});
+btnErase.addEventListener("click", () => {
+  const active = btnErase.classList.toggle("active");
+  btnDraw.classList.remove("active");
+  eraserMode = active;
+  drawEnabled = active;
+  overlay.style.cursor = active ? "crosshair" : "default";
 });
 btnClear.addEventListener("click", () => {
   ctx.clearRect(0, 0, overlay.width, overlay.height);
+});
+
+colorPalette.querySelectorAll(".color-swatch").forEach(btn => {
+  btn.addEventListener("click", () => {
+    penColor.value = btn.dataset.color;
+    colorPalette.querySelectorAll(".color-swatch").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+  });
 });
 
 overlay.addEventListener("pointerdown", (e) => {
@@ -275,6 +385,9 @@ function finishPointer(e) {
   if (activePointers.size < 2) {
     lastPinchDist = null;
   }
+  if (!drawEnabled && activePointers.size === 0) {
+    saveSettings(currentDeviceId);
+  }
   if (!drawEnabled && activePointers.size === 1) {
     const [p] = activePointers.values();
     lastPan = { x: p.x, y: p.y };
@@ -287,16 +400,15 @@ overlay.addEventListener("pointercancel", finishPointer);
 overlay.addEventListener("pointerleave", finishPointer);
 
 // ---------- Input selection ----------
-btnApplyInput.addEventListener("click", async () => {
+inputSelect.addEventListener("change", async () => {
   const id = inputSelect.value || undefined;
   await startStream(id);
 });
 
 // On load: request camera & populate inputs
 (async () => {
-  // Request initial camera to populate labels
-  await startStream();
-  // For browsers that require enumerate after permission
+  const last = localStorage.getItem("lastCamera");
+  await startStream(last || undefined);
   try { await listVideoInputs(); } catch {}
 })();
 
