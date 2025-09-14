@@ -51,9 +51,6 @@ html, body {
 }
 .section-input {
   margin-top: auto;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 8px;
 }
 .color-palette {
   display: flex;

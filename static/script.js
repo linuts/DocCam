@@ -6,6 +6,7 @@ const videoWrap = document.getElementById("videoWrap");
 const hint = document.getElementById("hint");
 
 const btnFullscreen = document.getElementById("btnFullscreen");
+const btnFreeze = document.getElementById("btnFreeze");
 const btnInvert = document.getElementById("btnInvert");
 const btnFlip = document.getElementById("btnFlip");
 const btnRotate = document.getElementById("btnRotate");
@@ -22,13 +23,13 @@ const activeSwatch = colorPalette.querySelector(".color-swatch.active");
 if (activeSwatch) penColor.value = activeSwatch.dataset.color;
 
 const inputSelect = document.getElementById("inputSelect");
-const btnApplyInput = document.getElementById("btnApplyInput");
 
 let currentStream = null;
 let drawEnabled = false;
 let rotation = 0;     // degrees (0, 90, 180, 270)
 let zoom = 1;         // scale factor (0.25 - 3)
 let mirrored = false; // horizontal flip
+let frozen = false;
 let offsetX = 0, offsetY = 0; // pan offsets in px
 
 // track active pointers for pinch/drag gestures
@@ -150,6 +151,17 @@ btnFullscreen.addEventListener("click", async () => {
   } catch (e) {
     console.warn("Fullscreen not allowed:", e);
   }
+});
+
+// ---------- Freeze ----------
+btnFreeze.addEventListener("click", () => {
+  frozen = !frozen;
+  if (frozen) {
+    video.pause();
+  } else {
+    video.play();
+  }
+  btnFreeze.classList.toggle("active", frozen);
 });
 
 // ---------- Menu toggle ----------
@@ -305,7 +317,7 @@ overlay.addEventListener("pointercancel", finishPointer);
 overlay.addEventListener("pointerleave", finishPointer);
 
 // ---------- Input selection ----------
-btnApplyInput.addEventListener("click", async () => {
+inputSelect.addEventListener("change", async () => {
   const id = inputSelect.value || undefined;
   await startStream(id);
 });
