@@ -19,9 +19,11 @@ const penSize = document.getElementById("penSize");
 const penColor = document.getElementById("penColor");
 const btnClear = document.getElementById("btnClear");
 const colorPalette = document.getElementById("colorPalette");
+const transparencySlider = document.getElementById("transparencySlider");
 
 const activeSwatch = colorPalette.querySelector(".color-swatch.active");
 if (activeSwatch) penColor.value = activeSwatch.dataset.color;
+overlay.style.opacity = 1 - transparencySlider.value / 100;
 
 const inputSelect = document.getElementById("inputSelect");
 const yearSpan = document.getElementById("year");
@@ -68,6 +70,7 @@ function saveSettings(id) {
     inverted: videoWrap.classList.contains("inverted"),
     offsetX,
     offsetY,
+    transparency: parseFloat(transparencySlider.value),
   };
   localStorage.setItem(`camSettings-${id}`, JSON.stringify(settings));
 }
@@ -88,6 +91,8 @@ function loadSettings(id) {
       if (s.inverted) videoWrap.classList.add("inverted");
       else videoWrap.classList.remove("inverted");
       btnInvert.classList.toggle("active", videoWrap.classList.contains("inverted"));
+      transparencySlider.value = s.transparency ?? 0;
+      overlay.style.opacity = 1 - transparencySlider.value / 100;
       applyTransform();
       return;
     } catch (e) {
@@ -103,6 +108,8 @@ function loadSettings(id) {
   btnFlip.classList.remove("active");
   videoWrap.classList.remove("inverted");
   btnInvert.classList.remove("active");
+  transparencySlider.value = 0;
+  overlay.style.opacity = 1;
   updateRotateButton();
   applyTransform();
 }
@@ -195,6 +202,10 @@ function applyTransform() {
 zoomSlider.addEventListener("input", () => {
   zoom = parseFloat(zoomSlider.value);
   applyTransform();
+  saveSettings(currentDeviceId);
+});
+transparencySlider.addEventListener("input", () => {
+  overlay.style.opacity = 1 - transparencySlider.value / 100;
   saveSettings(currentDeviceId);
 });
 btnRotate.addEventListener("click", () => {

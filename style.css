@@ -71,7 +71,8 @@ html, body {
   gap: 8px;
 }
 .section-zoom input[type="range"],
-.section-pen input[type="range"] {
+.section-pen input[type="range"],
+.section-transparency input[type="range"] {
   width: 100%;
 }
 .section-draw {
