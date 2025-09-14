@@ -4,7 +4,6 @@ const ctx = overlay.getContext("2d");
 
 const videoWrap = document.getElementById("videoWrap");
 const hint = document.getElementById("hint");
-const defaultHint = hint.textContent;
 
 const btnFullscreen = document.getElementById("btnFullscreen");
 const btnFreeze = document.getElementById("btnFreeze");
@@ -18,11 +17,24 @@ const btnDraw = document.getElementById("btnDraw");
 const btnErase = document.getElementById("btnErase");
 const penSize = document.getElementById("penSize");
 const penColor = document.getElementById("penColor");
+const penPreview = document.getElementById("penPreview");
 const btnClear = document.getElementById("btnClear");
 const colorPalette = document.getElementById("colorPalette");
+const transparencySlider = document.getElementById("transparencySlider");
 
 const activeSwatch = colorPalette.querySelector(".color-swatch.active");
 if (activeSwatch) penColor.value = activeSwatch.dataset.color;
+overlay.style.opacity = 1 - transparencySlider.value / 100;
+function updatePenPreview() {
+  const size = parseInt(penSize.value, 10) || 4;
+  penPreview.style.width = `${size}px`;
+  penPreview.style.height = `${size}px`;
+  penPreview.style.background = penColor.value;
+}
+updatePenPreview();
+
+penSize.addEventListener("input", updatePenPreview);
+penColor.addEventListener("input", updatePenPreview);
 
 const inputSelect = document.getElementById("inputSelect");
 const yearSpan = document.getElementById("year");
@@ -37,6 +49,15 @@ let zoom = 1;         // scale factor (0.25 - 3)
 let mirrored = false; // horizontal flip
 let frozen = false;
 let offsetX = 0, offsetY = 0; // pan offsets in px
+
+function showHint(message, type = "info", timeout = 0) {
+  hint.textContent = message;
+  hint.classList.remove("alert-info", "alert-danger", "d-none");
+  hint.classList.add(`alert-${type}`);
+  if (timeout > 0) {
+    setTimeout(() => hint.classList.add("d-none"), timeout);
+  }
+}
 
 function updateRotateButton() {
   btnRotate.textContent = `Rotate - ${rotation}°`;
@@ -60,6 +81,7 @@ function saveSettings(id) {
     inverted: videoWrap.classList.contains("inverted"),
     offsetX,
     offsetY,
+    transparency: parseFloat(transparencySlider.value),
   };
   localStorage.setItem(`camSettings-${id}`, JSON.stringify(settings));
 }
@@ -80,6 +102,8 @@ function loadSettings(id) {
       if (s.inverted) videoWrap.classList.add("inverted");
       else videoWrap.classList.remove("inverted");
       btnInvert.classList.toggle("active", videoWrap.classList.contains("inverted"));
+      transparencySlider.value = s.transparency ?? 0;
+      overlay.style.opacity = 1 - transparencySlider.value / 100;
       applyTransform();
       return;
     } catch (e) {
@@ -95,6 +119,8 @@ function loadSettings(id) {
   btnFlip.classList.remove("active");
   videoWrap.classList.remove("inverted");
   btnInvert.classList.remove("active");
+  transparencySlider.value = 0;
+  overlay.style.opacity = 1;
   updateRotateButton();
   applyTransform();
 }
@@ -133,9 +159,7 @@ async function startStream(deviceId = undefined) {
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
     video.srcObject = stream;
     currentStream = stream;
-    hint.textContent = defaultHint;
-    hint.classList.remove("alert-danger");
-    hint.classList.add("alert-info", "d-none");
+    showHint("Camera ready", "info", 3000);
     // Determine the actual device ID of the stream
     const track = stream.getVideoTracks()[0];
     currentDeviceId = track.getSettings().deviceId || deviceId || null;
@@ -149,9 +173,7 @@ async function startStream(deviceId = undefined) {
     await listVideoInputs();
   } catch (err) {
     console.error(err);
-    hint.textContent = "Camera access failed. Check permissions or device.";
-    hint.classList.remove("alert-info", "d-none");
-    hint.classList.add("alert-danger");
+    showHint("Camera access failed. Check permissions or device.", "danger");
   }
 }
 
@@ -191,6 +213,10 @@ function applyTransform() {
 zoomSlider.addEventListener("input", () => {
   zoom = parseFloat(zoomSlider.value);
   applyTransform();
+  saveSettings(currentDeviceId);
+});
+transparencySlider.addEventListener("input", () => {
+  overlay.style.opacity = 1 - transparencySlider.value / 100;
   saveSettings(currentDeviceId);
 });
 btnRotate.addEventListener("click", () => {
@@ -323,6 +349,7 @@ colorPalette.querySelectorAll(".color-swatch").forEach(btn => {
     penColor.value = btn.dataset.color;
     colorPalette.querySelectorAll(".color-swatch").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
+    updatePenPreview();
   });
 });
 
