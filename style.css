@@ -71,9 +71,25 @@ html, body {
   gap: 8px;
 }
 .section-zoom input[type="range"],
-.section-pen input[type="range"],
 .section-transparency input[type="range"] {
   width: 100%;
+}
+
+.section-pen .pen-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-pen .pen-control input[type="range"] {
+  flex: 1;
+  width: auto;
+}
+.pen-preview {
+  width: 4px;
+  height: 4px;
+  background: #ff0000;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #2a2f41;
 }
 .section-draw {
   display: grid;

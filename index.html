@@ -48,7 +48,10 @@
 
     <div class="section section-pen">
       <label for="penSize">Pen Size</label>
-      <input id="penSize" type="range" min="1" max="20" step="1" value="4">
+      <div class="pen-control">
+        <input id="penSize" type="range" min="1" max="20" step="1" value="4">
+        <span id="penPreview" class="pen-preview"></span>
+      </div>
     </div>
 
     <div class="section section-transparency">

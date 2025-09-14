@@ -17,6 +17,7 @@ const btnDraw = document.getElementById("btnDraw");
 const btnErase = document.getElementById("btnErase");
 const penSize = document.getElementById("penSize");
 const penColor = document.getElementById("penColor");
+const penPreview = document.getElementById("penPreview");
 const btnClear = document.getElementById("btnClear");
 const colorPalette = document.getElementById("colorPalette");
 const transparencySlider = document.getElementById("transparencySlider");
@@ -24,6 +25,16 @@ const transparencySlider = document.getElementById("transparencySlider");
 const activeSwatch = colorPalette.querySelector(".color-swatch.active");
 if (activeSwatch) penColor.value = activeSwatch.dataset.color;
 overlay.style.opacity = 1 - transparencySlider.value / 100;
+function updatePenPreview() {
+  const size = parseInt(penSize.value, 10) || 4;
+  penPreview.style.width = `${size}px`;
+  penPreview.style.height = `${size}px`;
+  penPreview.style.background = penColor.value;
+}
+updatePenPreview();
+
+penSize.addEventListener("input", updatePenPreview);
+penColor.addEventListener("input", updatePenPreview);
 
 const inputSelect = document.getElementById("inputSelect");
 const yearSpan = document.getElementById("year");
@@ -338,6 +349,7 @@ colorPalette.querySelectorAll(".color-swatch").forEach(btn => {
     penColor.value = btn.dataset.color;
     colorPalette.querySelectorAll(".color-swatch").forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
+    updatePenPreview();
   });
 });
 
