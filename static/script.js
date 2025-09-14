@@ -33,6 +33,12 @@ let mirrored = false; // horizontal flip
 let frozen = false;
 let offsetX = 0, offsetY = 0; // pan offsets in px
 
+function updateRotateButton() {
+  btnRotate.textContent = `⟳ ${rotation}°`;
+  btnRotate.classList.toggle("active", rotation !== 0);
+}
+updateRotateButton();
+
 // track active pointers for pinch/drag gestures
 const activePointers = new Map();
 // track last points for active drawing pointers
@@ -65,6 +71,7 @@ function loadSettings(id) {
       offsetY = s.offsetY || 0;
       zoomSlider.value = zoom;
       btnFlip.classList.toggle("active", mirrored);
+      updateRotateButton();
       if (s.inverted) videoWrap.classList.add("inverted");
       else videoWrap.classList.remove("inverted");
       btnInvert.classList.toggle("active", videoWrap.classList.contains("inverted"));
@@ -83,6 +90,7 @@ function loadSettings(id) {
   btnFlip.classList.remove("active");
   videoWrap.classList.remove("inverted");
   btnInvert.classList.remove("active");
+  updateRotateButton();
   applyTransform();
 }
 
@@ -179,6 +187,7 @@ zoomSlider.addEventListener("input", () => {
 });
 btnRotate.addEventListener("click", () => {
   rotation = (rotation + 90) % 360;
+  updateRotateButton();
   applyTransform();
   saveSettings(currentDeviceId);
 });
